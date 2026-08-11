@@ -68,23 +68,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self._respond_json(200, {"reply": reply})
 
     def _call_bedrock(self, user_message):
-        body = json.dumps({
-            "inputText": user_message,
-            "textGenerationConfig": {
-                "maxTokenCount": 512,
+        # Converse is Bedrock's unified API - same request/response shape
+        # regardless of which model is behind it, unlike invoke_model where
+        # every model family has its own JSON schema. Authorized by the
+        # same bedrock:InvokeModel / InvokeModelWithResponseStream actions
+        # already granted to this role - no separate "Converse" IAM action
+        # exists.
+        response = bedrock_client.converse(
+            modelId=BEDROCK_MODEL_ID,
+            messages=[
+                {"role": "user", "content": [{"text": user_message}]}
+            ],
+            inferenceConfig={
+                "maxTokens": 512,
                 "temperature": 0.7,
                 "topP": 0.9,
             },
-        })
-
-        response = bedrock_client.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            body=body,
-            contentType="application/json",
-            accept="application/json",
         )
-        result = json.loads(response["body"].read())
-        return result["results"][0]["outputText"].strip()
+        return response["output"]["message"]["content"][0]["text"].strip()
 
     def _render_index(self):
         hostname = socket.gethostname()
