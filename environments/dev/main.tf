@@ -52,9 +52,10 @@ module "secrets" {
 module "iam" {
   source = "../../modules/iam"
 
-  project_name = var.project_name
-  environment  = var.environment
-  aws_region   = var.aws_region
+  project_name   = var.project_name
+  environment    = var.environment
+  aws_region     = var.aws_region
+  bedrock_region = "ap-south-1"
 
   ecr_repository_arns = [var.ecr_repository_arn]
   secret_arns          = [module.secrets.secret_arn]
