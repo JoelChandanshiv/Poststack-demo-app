@@ -183,8 +183,13 @@ data "aws_iam_role" "app_server" {
 
 data "aws_iam_policy_document" "app_server_codedeploy_artifact_access" {
   statement {
-    sid       = "ReadDeploymentArtifact"
-    actions   = ["s3:GetObject"]
+    sid = "ReadDeploymentArtifact"
+    # GetObjectVersion is required in addition to GetObject - the artifact
+    # bucket has versioning enabled, and CodeDeploy fetches the revision by
+    # a specific version ID (visible in the revision location's
+    # ?versionId=... query param), which is a distinct IAM action from
+    # plain GetObject even though it sounds redundant.
+    actions   = ["s3:GetObject", "s3:GetObjectVersion"]
     resources = ["${aws_s3_bucket.artifacts_primary.arn}/*"]
   }
 

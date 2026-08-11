@@ -1,4 +1,13 @@
 resource "aws_codepipeline" "app_deploy" {
+  # AWS requires the Source action to be in the SAME region as the
+  # pipeline itself - cross-region actions are only supported for stages
+  # AFTER Source. Since the GitHub connection only exists in
+  # var.connection_region, the pipeline resource itself has to be created
+  # there too. Build and Deploy become the cross-region actions instead,
+  # explicitly pinned to var.aws_region (ap-south-2) below, since that's
+  # where the CodeBuild project and CodeDeploy app/group actually live.
+  provider = aws.connection_region
+
   name     = "${local.name_prefix}-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
@@ -38,10 +47,9 @@ resource "aws_codepipeline" "app_deploy" {
       version          = "1"
       output_artifacts = ["source_output"]
 
-      # Pinned to the connection's own region - everything else in this
-      # pipeline defaults to var.aws_region (the pipeline's primary region)
-      # unless explicitly overridden, so only this action needs it.
-      region = var.connection_region
+      # No region override here - Source must match the pipeline's own
+      # region (var.connection_region, set via the provider block above),
+      # AWS rejects any attempt to pin Source to a different region.
 
       configuration = {
         ConnectionArn    = var.github_connection_arn
@@ -64,6 +72,11 @@ resource "aws_codepipeline" "app_deploy" {
       input_artifacts  = ["source_output"]
       output_artifacts = ["build_output"]
 
+      # Cross-region: the CodeBuild project lives in ap-south-2, while the
+      # pipeline itself is homed in ap-south-1 (see provider on the
+      # aws_codepipeline resource above).
+      region = var.aws_region
+
       configuration = {
         ProjectName = aws_codebuild_project.app_build.name
       }
@@ -80,6 +93,11 @@ resource "aws_codepipeline" "app_deploy" {
       provider        = "CodeDeploy"
       version         = "1"
       input_artifacts = ["build_output"]
+
+      # Cross-region: CodeDeploy and the target EC2 instance both live in
+      # ap-south-2 (a hard requirement - see the note at the top of
+      # main.tf), while the pipeline itself is homed in ap-south-1.
+      region = var.aws_region
 
       configuration = {
         ApplicationName     = aws_codedeploy_app.app.name
