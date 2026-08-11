@@ -11,6 +11,12 @@ variable "aws_region" {
   type        = string
 }
 
+variable "bedrock_model_ids" {
+  description = "Bedrock foundation model IDs the app server is allowed to invoke. Must also have 'Model access' enabled for each in the Bedrock Console (a separate, one-time, per-account/region requirement that IAM alone doesn't grant)."
+  type        = list(string)
+  default     = ["amazon.titan-text-express-v1"]
+}
+
 variable "ecr_repository_arns" {
   description = "ECR repository ARNs the app server is allowed to pull images from."
   type        = list(string)

@@ -88,6 +88,34 @@ resource "aws_iam_role_policy_attachment" "app_server_cloudwatch_agent" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+# ---------------------------------------------------------------------------
+# Bedrock InvokeModel - scoped to the specific model(s) the app uses, not a
+# blanket "bedrock:*" grant. Foundation model ARNs have no account ID
+# segment (they're AWS-owned, shared public resources, not something this
+# account creates) - that's expected, not a typo.
+#
+# NOTE: an IAM grant alone is not sufficient to actually call the model.
+# Bedrock separately requires "Model access" to be enabled per model, per
+# region, per account - a one-time EULA-acceptance step that, as far as
+# I'm aware, still has to be done in the Console (Bedrock -> Model access),
+# not via Terraform/CLI. This is the same category of unavoidable manual
+# step as the GitHub connection OAuth authorization elsewhere in this
+# project - flagging it here rather than assuming it's automatable.
+# ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "app_server_bedrock" {
+  statement {
+    sid       = "BedrockInvoke"
+    actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    resources = [for model_id in var.bedrock_model_ids : "arn:aws:bedrock:${var.aws_region}::foundation-model/${model_id}"]
+  }
+}
+
+resource "aws_iam_role_policy" "app_server_bedrock" {
+  name   = "${local.name_prefix}-app-server-bedrock"
+  role   = aws_iam_role.app_server.id
+  policy = data.aws_iam_policy_document.app_server_bedrock.json
+}
+
 resource "aws_iam_instance_profile" "app_server" {
   name = "${local.name_prefix}-app-server-profile"
   role = aws_iam_role.app_server.name

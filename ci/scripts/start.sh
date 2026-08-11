@@ -18,6 +18,8 @@ sudo docker run -d \
   --restart unless-stopped \
   -p 8080:8080 \
   -e ENVIRONMENT=dev \
+  -e BEDROCK_REGION=ap-south-2 \
+  -e BEDROCK_MODEL_ID=amazon.titan-text-express-v1 \
   "$IMAGE_URI"
 
 echo "Started container from $IMAGE_URI"

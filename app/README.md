@@ -6,6 +6,27 @@ application deploy pipeline exists. Once `platform/terraform-pipeline`
 and the (still-unbuilt) app deploy pipeline are live, this becomes
 unnecessary — but for right now, here's how to deploy it manually.
 
+## Prerequisite: enable Bedrock model access (one-time, Console)
+
+The app calls Amazon Bedrock (Titan Text Express) for a small chat demo.
+This requires "Model access" to be enabled for that model in this
+account/region — a one-time EULA-acceptance step that, as far as I'm
+aware, still has to be done in the Console (Terraform/IAM alone doesn't
+grant it — the IAM policy in `modules/iam` is necessary but not
+sufficient).
+
+1. AWS Console → region switched to **Asia Pacific (Hyderabad) ap-south-2**
+2. Bedrock → **Model access** (left sidebar)
+3. Find **Titan Text Express** (publisher: Amazon) → request/enable access
+4. Amazon's own models are usually approved instantly, unlike some
+   third-party models that need a business-justification review — but
+   confirm it shows "Access granted" before testing the chat endpoint.
+
+If you skip this, `/chat` will return a 502 with the raw Bedrock error
+(likely `AccessDeniedException` mentioning model access) — the app
+deliberately surfaces the real error instead of a generic failure, so
+that's your signal this step is still pending.
+
 ## Prerequisite: platform/ecr must be applied
 
 If you haven't already:
@@ -42,7 +63,7 @@ Then, on the app server itself:
 REPO_URL=<paste the same repository_url from step 1>
 aws ecr get-login-password --region ap-south-2 | sudo docker login --username AWS --password-stdin "${REPO_URL%/*}"
 sudo docker pull "${REPO_URL}:manual-test"
-sudo docker run -d --name poststack-app -p 8080:8080 -e ENVIRONMENT=dev "${REPO_URL}:manual-test"
+sudo docker run -d --name poststack-app -p 8080:8080 -e ENVIRONMENT=dev -e BEDROCK_REGION=ap-south-2 -e BEDROCK_MODEL_ID=amazon.titan-text-express-v1 "${REPO_URL}:manual-test"
 sudo docker ps   # confirm it's running
 curl localhost:8080/health   # confirm it responds locally first
 ```
@@ -77,5 +98,3 @@ way down to a container on the private app server actually works.
 # back in the SSM session on the app server:
 sudo docker stop poststack-app && sudo docker rm poststack-app
 ```
-# test auto-trigger
-# test auto-trigger

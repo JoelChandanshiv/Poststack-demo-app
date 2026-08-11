@@ -1,8 +1,10 @@
-# Deliberately minimal - this app exists only to prove the infrastructure
-# path works end to end, not as a real application.
 FROM python:3.12-alpine
 
 WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY app.py .
 
 ENV APP_PORT=8080
