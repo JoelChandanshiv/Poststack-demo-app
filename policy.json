@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:StartSession"
+      ],
+      "Resource": [
+        "arn:aws:ec2:ap-south-2:345594572087:instance/i-0433a295b6e1dbb4e",
+        "arn:aws:ssm:ap-south-2:*:document/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:TerminateSession"
+      ],
+      "Resource": "arn:aws:ssm:ap-south-2:345594572087:session/*"
+    }
+  ]
+}

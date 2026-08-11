@@ -1,0 +1,47 @@
+version: 0.2
+
+env:
+  variables:
+    TF_ENV: "dev"
+    TF_VERSION: "1.10.5"
+    TFLINT_VERSION: "0.55.0"
+
+phases:
+  install:
+    commands:
+      - echo "Installing Terraform $TF_VERSION"
+      - curl -sSLo terraform.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+      - unzip -o terraform.zip -d /usr/local/bin
+      - terraform version
+      - echo "Installing TFLint $TFLINT_VERSION"
+      - curl -sSLo tflint.zip "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_amd64.zip"
+      - unzip -o tflint.zip -d /usr/local/bin
+      - tflint --version
+      - pip3 install --quiet checkov
+
+  pre_build:
+    commands:
+      # Format check across the whole repo, not just this env's directory
+      - terraform fmt -check -recursive .
+      - cd environments/${TF_ENV}
+      - terraform init -input=false
+      - terraform validate
+      - cd ../..
+      - tflint --init
+      - tflint --recursive
+      # Checkov is additional IaC security scanning, not a replacement for
+      # TFLint. Non-blocking (|| true) for now - review findings manually
+      # and decide which should become blocking once the baseline is clean.
+      - checkov -d . --quiet --compact || true
+
+  build:
+    commands:
+      - cd environments/${TF_ENV}
+      - terraform plan -input=false -out=tfplan
+      - terraform show -no-color tfplan > tfplan.txt
+      - cd ../..
+
+artifacts:
+  files:
+    - '**/*'
+  base-directory: .

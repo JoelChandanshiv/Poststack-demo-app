@@ -1,0 +1,13 @@
+# Copy to backend.tf, fill in from bootstrap's outputs. This is shared/
+# platform state, separate from both dev and prod.
+
+terraform {
+  backend "s3" {
+    bucket       = "<STATE_BUCKET_NAME>"
+    key          = "platform/ecr/terraform.tfstate"
+    region       = "ap-south-2"
+    encrypt      = true
+    kms_key_id   = "<KMS_KEY_ARN>"
+    use_lockfile = true
+  }
+}

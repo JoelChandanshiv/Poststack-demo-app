@@ -1,0 +1,32 @@
+# Local Terraform state (must never be committed — it lives in S3)
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Terraform working directories
+**/.terraform/*
+
+# Do keep the dependency lock file committed — do NOT ignore .terraform.lock.hcl
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI config that may contain credentials
+.terraformrc
+terraform.rc
+
+# Environment-specific variable files that may contain sensitive values
+# (keep *.tfvars.example committed, ignore the real ones)
+*.tfvars
+!*.tfvars.example
+
+# OS/editor cruft
+.DS_Store
+*.swp
+
+# Generated Lambda deployment package (built locally by the archive_file
+# data source in platform/drift-detection on every plan/apply - not source)
+platform/drift-detection/lambda/drift_check.zip

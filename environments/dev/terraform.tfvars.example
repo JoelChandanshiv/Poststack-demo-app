@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and fill in real values. terraform.tfvars is
+# gitignored by default (see root .gitignore) since admin_cidr_blocks and
+# similar values can be environment-specific; ecr_repository_arn and
+# similar non-sensitive values are fine to commit if your team prefers —
+# adjust the .gitignore rule if so.
+
+admin_cidr_blocks   = ["203.0.113.0/32"] # replace with YOUR actual admin/office IP(s)
+bastion_ssh_key_name = "Django-server-key"  # must already exist in ap-south-2 - verify with: aws ec2 describe-key-pairs --key-names Django-server-key --region ap-south-2
+ecr_repository_arn  = "arn:aws:ecr:ap-south-2:<ACCOUNT_ID>:repository/poststack-app" # from platform/ecr output, after that's applied
+alarm_email         = "" # optional

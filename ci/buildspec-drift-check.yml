@@ -1,0 +1,43 @@
+version: 0.2
+
+env:
+  variables:
+    TF_ENV: "dev"
+    TF_VERSION: "1.10.5"
+    REPORT_BUCKET: ""
+    REPORT_KEY_PREFIX: ""
+
+phases:
+  install:
+    commands:
+      - curl -sSLo terraform.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+      - unzip -o terraform.zip -d /usr/local/bin
+      - terraform version
+
+  build:
+    commands:
+      - cd environments/${TF_ENV}
+      - terraform init -input=false
+      - |
+        set +e
+        terraform plan -detailed-exitcode -input=false -out=drift.tfplan > plan_output.txt 2>&1
+        PLAN_EXIT_CODE=$?
+        set -e
+        if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+          echo "No drift detected."
+          echo '{"drift_detected": false}' > report.json
+        elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+          echo "Drift detected."
+          python3 -c "
+        import json
+        with open('plan_output.txt') as f:
+            summary = f.read()[-4000:]
+        with open('report.json', 'w') as out:
+            json.dump({'drift_detected': True, 'plan_summary': summary}, out)
+        "
+        else
+          echo "terraform plan failed with a real error (exit $PLAN_EXIT_CODE) - NOT a drift result, investigate the log above."
+          cat plan_output.txt
+          exit 1
+        fi
+        aws s3 cp report.json "s3://${REPORT_BUCKET}/drift-reports/${REPORT_KEY_PREFIX}/latest.json"

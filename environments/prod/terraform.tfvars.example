@@ -1,0 +1,4 @@
+admin_cidr_blocks    = ["203.0.113.0/32"] # replace with YOUR actual admin/office IP(s)
+bastion_ssh_key_name = "poststack-prod-bastion"  # different key pair from dev
+ecr_repository_arn   = "arn:aws:ecr:ap-south-2:<ACCOUNT_ID>:repository/poststack-app"
+alarm_email          = "ops@yourcompany.example" # strongly recommended for prod

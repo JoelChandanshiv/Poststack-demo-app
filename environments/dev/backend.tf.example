@@ -1,0 +1,21 @@
+# Copy this file to backend.tf inside environments/dev and environments/prod,
+# filling in <STATE_BUCKET_NAME> and <KMS_KEY_ARN> from bootstrap's outputs
+# (`terraform output` inside bootstrap/ after it's applied).
+#
+# The `key` value below is what differentiates dev from prod within the same
+# bucket — this is the actual mechanism that guarantees applying dev never
+# touches prod's state. Prod's copy of this file should use key =
+# "prod/terraform.tfstate" instead.
+
+terraform {
+  backend "s3" {
+    bucket       = "<STATE_BUCKET_NAME>"
+    key          = "dev/terraform.tfstate"
+    region       = "ap-south-2"
+    encrypt      = true
+    kms_key_id   = "<KMS_KEY_ARN>"
+
+    # Native S3 state locking — Terraform 1.10+. No DynamoDB table required.
+    use_lockfile = true
+  }
+}

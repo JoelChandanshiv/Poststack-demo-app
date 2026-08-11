@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  variables:
+    TF_ENV: "dev"
+    TF_VERSION: "1.10.5"
+
+phases:
+  install:
+    commands:
+      - curl -sSLo terraform.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+      - unzip -o terraform.zip -d /usr/local/bin
+      - terraform version
+
+  build:
+    commands:
+      - cd environments/${TF_ENV}
+      - terraform init -input=false
+      # Applies the exact plan produced and approved in the previous stage,
+      # not a freshly recomputed one - this is what makes "approve this
+      # plan" a meaningful guarantee rather than approving a plan and
+      # having something subtly different actually get applied.
+      - terraform apply -input=false tfplan
