@@ -1,0 +1,35 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${ECR_REPOSITORY_URL%/*}"
+      # Falls back to "latest" only if CodeBuild somehow doesn't provide a
+      # resolved source version (shouldn't happen with a Git source, but
+      # cheap to guard against).
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}"
+      - echo "Building image tag $IMAGE_TAG"
+
+  build:
+    commands:
+      - docker build -t "${ECR_REPOSITORY_URL}:${IMAGE_TAG}" ./app
+
+  post_build:
+    commands:
+      - docker push "${ECR_REPOSITORY_URL}:${IMAGE_TAG}"
+      # Written into ci/ so it ships alongside appspec.yml and the hook
+      # scripts as part of the CodeDeploy revision bundle below - this is
+      # how the deploy scripts on the instance know which exact image tag
+      # to pull, without hardcoding "latest" and risking a stale pull.
+      - echo "IMAGE_URI=${ECR_REPOSITORY_URL}:${IMAGE_TAG}" > ci/deploy_vars.env
+      - cat ci/deploy_vars.env
+
+# base-directory: ci means everything CodeDeploy needs (appspec.yml,
+# deploy_vars.env, scripts/) lands at the ROOT of the artifact - CodeDeploy
+# requires appspec.yml at the revision bundle's root, not nested.
+artifacts:
+  files:
+    - appspec.yml
+    - deploy_vars.env
+    - scripts/**/*
+  base-directory: ci

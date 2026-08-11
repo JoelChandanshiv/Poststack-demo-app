@@ -51,7 +51,7 @@ curl localhost:8080/health   # confirm it responds locally first
 
 From your dev server (or anywhere with AWS CLI access):
 ```bash
-TG_ARN=$(cd ../environments/dev && terraform output -raw alb_dns_name > /dev/null; aws elbv2 describe-target-groups --names poststack-dev-app-tg --region ap-south-2 --query 'TargetGroups[0].TargetGroupArn' --output text)
+TG_ARN=$(aws elbv2 describe-target-groups --names poststack-dev-app-tg --region ap-south-2 --query 'TargetGroups[0].TargetGroupArn' --output text)
 aws elbv2 describe-target-health --target-group-arn "$TG_ARN" --region ap-south-2
 ```
 Look for `"State": "healthy"`. It can take up to ~30-45 seconds after the
@@ -60,8 +60,12 @@ interval is 15s, healthy_threshold is 2 consecutive passes).
 
 ## 4. Hit it through the actual ALB
 
+The ALB's DNS name is assigned by AWS and changes if the ALB is ever
+recreated (e.g. after a `terraform destroy`) - always fetch the current
+value rather than reusing one from an earlier session:
 ```bash
-curl http://poststack-dev-alb-583022786.ap-south-2.elb.amazonaws.com/
+ALB_DNS=$(cd ../environments/dev && terraform output -raw alb_dns_name)
+curl "http://${ALB_DNS}/"
 ```
 You should see the dummy app's HTML page, including the container's
 hostname — confirming the full path from the internet-facing ALB all the

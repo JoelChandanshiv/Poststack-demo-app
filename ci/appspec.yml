@@ -1,0 +1,31 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/poststack-app
+
+hooks:
+  # NOTE: ApplicationStop does NOT run on the very first deployment to an
+  # instance (there's no previous revision for CodeDeploy to reference
+  # yet) - this is documented CodeDeploy behavior, not a bug here. That
+  # means a container started manually OUTSIDE CodeDeploy (like the one
+  # from app/README.md's manual verification steps) will NOT be stopped
+  # automatically the first time this pipeline runs. Stop it by hand
+  # once before the first real deployment:
+  #   docker stop poststack-app && docker rm poststack-app
+  # Every deployment after that is handled automatically by this hook.
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 60
+      runas: root
+
+  AfterInstall:
+    - location: scripts/start.sh
+      timeout: 120
+      runas: root
+
+  ValidateService:
+    - location: scripts/validate.sh
+      timeout: 60
+      runas: root
