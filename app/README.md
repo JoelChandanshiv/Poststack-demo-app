@@ -77,3 +77,4 @@ way down to a container on the private app server actually works.
 # back in the SSM session on the app server:
 sudo docker stop poststack-app && sudo docker rm poststack-app
 ```
+# test auto-trigger
