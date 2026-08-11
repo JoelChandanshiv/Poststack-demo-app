@@ -78,3 +78,4 @@ way down to a container on the private app server actually works.
 sudo docker stop poststack-app && sudo docker rm poststack-app
 ```
 # test auto-trigger
+# test auto-trigger
