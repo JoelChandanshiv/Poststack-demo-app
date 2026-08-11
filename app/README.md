@@ -8,19 +8,30 @@ unnecessary — but for right now, here's how to deploy it manually.
 
 ## Prerequisite: enable Bedrock model access (one-time, Console)
 
-The app calls Amazon Bedrock (Titan Text Express) for a small chat demo.
-This requires "Model access" to be enabled for that model in this
-account/region — a one-time EULA-acceptance step that, as far as I'm
-aware, still has to be done in the Console (Terraform/IAM alone doesn't
-grant it — the IAM policy in `modules/iam` is necessary but not
-sufficient).
+The app calls Amazon Bedrock — **Nova 2 Lite** via a cross-region
+inference profile (`global.amazon.nova-2-lite-v1:0`) — for a small chat
+demo. This requires "Model access" to be enabled for the underlying model
+in this account — a one-time step that, as far as I'm aware, still has to
+be done in the Console (Terraform/IAM alone doesn't grant it — the IAM
+policy in `modules/iam` is necessary but not sufficient).
 
-1. AWS Console → region switched to **Asia Pacific (Hyderabad) ap-south-2**
-2. Bedrock → **Model access** (left sidebar)
-3. Find **Titan Text Express** (publisher: Amazon) → request/enable access
-4. Amazon's own models are usually approved instantly, unlike some
-   third-party models that need a business-justification review — but
-   confirm it shows "Access granted" before testing the chat endpoint.
+**Note on data residency:** this model is only reachable via a
+cross-region inference profile whose destination is described by AWS as
+"Commercial AWS Regions" (broad, not limited to one geography). Confirmed
+via `aws bedrock list-inference-profiles --region ap-south-1`, which
+returned exactly two underlying model ARNs: one with no region segment at
+all, and one scoped to `ap-south-1`. Requests are not guaranteed to stay
+in `ap-south-2`, or even in India — this was a deliberate choice for this
+demo (two earlier models were tried first: Titan Text Express, since
+retired by AWS entirely, then a Claude Haiku profile that turned out not
+to be registered in this account's `ap-south-2`; Nova 2 Lite's `global`
+profile is the one actually confirmed working via CLI).
+
+1. AWS Console → region switched to **Asia Pacific (Mumbai) ap-south-1**
+   (the profile itself is registered there, confirmed via CLI) → Bedrock
+   → **Model access**
+2. Find **Nova 2 Lite** (publisher: Amazon) → request/enable access
+3. Confirm it shows "Access granted" before testing the chat endpoint
 
 If you skip this, `/chat` will return a 502 with the raw Bedrock error
 (likely `AccessDeniedException` mentioning model access) — the app
@@ -63,7 +74,7 @@ Then, on the app server itself:
 REPO_URL=<paste the same repository_url from step 1>
 aws ecr get-login-password --region ap-south-2 | sudo docker login --username AWS --password-stdin "${REPO_URL%/*}"
 sudo docker pull "${REPO_URL}:manual-test"
-sudo docker run -d --name poststack-app -p 8080:8080 -e ENVIRONMENT=dev -e BEDROCK_REGION=ap-south-2 -e BEDROCK_MODEL_ID=amazon.titan-text-express-v1 "${REPO_URL}:manual-test"
+sudo docker run -d --name poststack-app -p 8080:8080 -e ENVIRONMENT=dev -e BEDROCK_REGION=ap-south-1 -e BEDROCK_MODEL_ID=global.amazon.nova-2-lite-v1:0 "${REPO_URL}:manual-test"
 sudo docker ps   # confirm it's running
 curl localhost:8080/health   # confirm it responds locally first
 ```

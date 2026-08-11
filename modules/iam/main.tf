@@ -102,11 +102,32 @@ resource "aws_iam_role_policy_attachment" "app_server_cloudwatch_agent" {
 # step as the GitHub connection OAuth authorization elsewhere in this
 # project - flagging it here rather than assuming it's automatable.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Bedrock InvokeModel - using the "global" cross-region inference profile
+# for Amazon Nova 2 Lite, confirmed via `aws bedrock list-inference-profiles
+# --region ap-south-1` to be real and active in this account. The profile
+# itself lives in ap-south-1 (var.bedrock_region), not ap-south-2
+# (var.aws_region, used everywhere else in this project) - the app server
+# calls out to it as a normal cross-region API call.
+#
+# NOTE: as before, an IAM grant alone is not sufficient - Bedrock Model
+# Access must also be enabled for this model in the Console (see
+# app/README.md), separate from this policy.
+# ---------------------------------------------------------------------------
 data "aws_iam_policy_document" "app_server_bedrock" {
   statement {
-    sid       = "BedrockInvoke"
+    sid     = "BedrockInvokeInferenceProfile"
+    actions = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+    resources = [
+      for profile_id in var.bedrock_inference_profile_ids :
+      "arn:aws:bedrock:${var.bedrock_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${profile_id}"
+    ]
+  }
+
+  statement {
+    sid       = "BedrockInvokeUnderlyingModel"
     actions   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-    resources = [for model_id in var.bedrock_model_ids : "arn:aws:bedrock:${var.aws_region}::foundation-model/${model_id}"]
+    resources = var.bedrock_underlying_model_arns
   }
 }
 

@@ -21,8 +21,8 @@ import boto3
 
 PORT = int(os.environ.get("APP_PORT", "8080"))
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "unknown")
-BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "ap-south-2")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "amazon.titan-text-express-v1")
+BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "ap-south-1")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
 
 bedrock_client = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION)
 
